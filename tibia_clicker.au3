@@ -1,167 +1,146 @@
 ;
-; $Id: clicker.au3,v 1.2 2013/10/22 14:23:03 admin Exp $
+; Tibia clicker
 ;
+; This is a script that adds some tweaks to the tibia desktop client. 
+;
+;               end = toggles attacking the first enemy in the enemy list
+;         page down = toggles attacking the second enemy in the enemy list
+;           page up = toggles attacking the third enemy in the enemy list
+;               end = toggles attacking the third enemy in the enemy list
+;  single quote (') = toggles pressing the hotkey "F4" constantly with a cooldown period
+;        hyphen (-) = wear invisibility ring from the first inventory slot
+;         alt + esc = exits the script
+;
+; The order of windows on the right side panel must be the following: 
+; First the battle window with the default height, about 4 enemies. 
+; Below it must be the inventory where the first item must be an invisibility ring. 
 
-HotKeySet("{HOME}", "click_hook_enemy_4")
-HotKeySet("{PGUP}", "click_hook_enemy_3")
-HotKeySet("{PGDN}", "click_hook_enemy_2")
-HotKeySet("{END}", "click_hook_enemy_1")
-HotKeySet("'", "keypress_hook_spell_attack_toggle")
-HotKeySet("-", "put_on_invisibility_ring");
-HotKeySet("^!{ESC}", "msg_and_terminate") ; quit
 
-global $title_of_this_robot = "tibia clicker"
+
+const $splash_pos_x = 1000 ; 100 for left, 1000 for right
+const $splash_pos_y = 550 ; 150 for top, 550 for bottom
+
+const $battle_pos_x = 1204 ; battle window x position on screen
+const $battle_pos_y = 435 ; first enemy position on screen
+const $battle_gap_y = 23 ; relative next enemy position
+const $mouse_move_speed = 2 ; speed 0-100 of moving mouse to attack
+AutoItSetOption("MouseClickDelay", 25) ; delay in ms when clicking attack 
+
+const $ring_slot_pos_x = 1215 ; ring slot position on screen
+const $ring_slot_pos_y = 282
+const $backpack_first_pos_x = 1215 ; first inventory slot position on screen
+const $backpack_first_pos_y = 558
+AutoItSetOption("MouseClickDragDelay", 25) ; delay in ms when dragging the ring to ring slot
+
+const $spell_button = "{F4}" ; https://www.autoitscript.com/autoit3/docs/appendix/SendKeys.htm
+const $spell_casting_cooldown = 2000 ; in ms
+
+
+
+const $title_of_this_robot = "tibia clicker"
 global $attack_spell_on = false
 global $already_pressing = false
 
-$splash_pos_x = 1000 ; 100 for left, 1000 for right
-$splash_pos_y = 550 ; 150 for top, 550 for bottom
-
-$battle_pos_x = 1204 ; battle window x position on screen
-$battle_pos_y = 435 ; first enemy position on screen
-$battle_gap_y = 23 ; relative next enemy position
-
-$backpack_first_pos_x = 1215
-$backpack_first_pos_y = 558
-
-$ring_slot_pos_x = 1215
-$ring_slot_pos_y = 282
-
-$mouse_move_speed = 2
-AutoItSetOption("MouseClickDelay", 1) ; 25 works
-
-; --- function names ----------------------------------------------------------
-
-;Func click_hook()
-;Func terminate()
-;Func msg_and_terminate()
-;Func list_all_windows()
-;Func IsVisible($handle)
-;Func print_with_splash($input_text, $delay)
+HotKeySet("{HOME}", "keypress_hook_attack_enemy_4")
+HotKeySet("{PGUP}", "keypress_hook_attack_enemy_3")
+HotKeySet("{PGDN}", "keypress_hook_attack_enemy_2")
+HotKeySet("{END}", "keypress_hook_attack_enemy_1")
+HotKeySet("'", "keypress_hook_spell_attack_toggle")
+HotKeySet("-", "keypress_hook_put_ring_on");
+HotKeySet("^!{ESC}", "msg_and_terminate") ; quit
 
 
 
-; --- start -------------------------------------------------------------------
+
+
+; --- main loop start -------------------------------------------------------------------
 
 print_with_splash("Started...", 500)
 
 While True
-  If $already_pressing = false Then
-    $already_pressing = true
-    If IsPressed('04') Then ; 02 = right mouse button, 04 = middle mouse button
-      send("{CTRLDOWN}")
-      MouseClick("left")
-      send("{CTRLUP}")
-    ElseIf IsPressed('02') Then ; 02 = right mouse button, 04 = middle mouse button
- 	  MouseClick("left")
-      send("{SHIFTDOWN}")
-	  sleep(50)
-	  MouseClick("left")
-	  sleep(50)
-      send("{SHIFTUP}")
-    EndIf
-    Sleep(100)
-    $already_pressing = false
-   Else
-    print_with_splash("already pressing!", 200)
+  If IsPressed('04') Then ; 04 = middle mouse button
+    send("{CTRLDOWN}")
+    MouseClick("left")
+    send("{CTRLUP}")
+  ElseIf IsPressed('02') Then ; 02 = right mouse button
+    MouseClick("left")
+    send("{SHIFTDOWN}")
+    sleep(50)
+    MouseClick("left")
+    sleep(50)
+    send("{SHIFTUP}")
   EndIf
+  Sleep(100)
 Wend
 
 terminate()
 
-; --- end ---------------------------------------------------------------------
+; --- main loop end ---------------------------------------------------------------------
 
 
 
-Func click_hook_enemy_1()
-  click_hook_enemy(1)
+Func keypress_hook_attack_enemy_1()
+  click_attack_enemy(1)
 EndFunc
 
-Func click_hook_enemy_2()
-  click_hook_enemy(2)
+Func keypress_hook_attack_enemy_2()
+  click_attack_enemy(2)
 EndFunc
 
-Func click_hook_enemy_3()
-  click_hook_enemy(3)
+Func keypress_hook_attack_enemy_3()
+  click_attack_enemy(3)
 EndFunc
 
-Func click_hook_enemy_4()
-  click_hook_enemy(4)
+Func keypress_hook_attack_enemy_4()
+  click_attack_enemy(4)
 EndFunc
 
 
 
-Func click_hook_enemy($enemy_number)
+Func click_attack_enemy($enemy_number)
   If winactive("Tibia") Then
     $starting_point_x = MouseGetPos(0)
     $starting_point_y = MouseGetPos(1)
 ;    print_with_splash("Clicked enemy " & $enemy_number, 200)
     MouseClick("left", $battle_pos_x, $battle_pos_y + $battle_gap_y * ($enemy_number - 1), 1, $mouse_move_speed)
-	MouseMove($starting_point_x, $starting_point_y, $mouse_move_speed)
+    MouseMove($starting_point_x, $starting_point_y, $mouse_move_speed)
   EndIf
 
 EndFunc
 
 
 
-Func put_on_invisibility_ring()
-  AutoItSetOption("MouseClickDragDelay", 25)
+Func keypress_hook_put_ring_on()
   MouseClickDrag("left", $backpack_first_pos_x, $backpack_first_pos_y, $ring_slot_pos_x, $ring_slot_pos_y, 0)
 EndFunc
 
 
+
 Func keypress_hook_spell_attack_toggle()
   If $attack_spell_on Then
-	$attack_spell_on = False
+    $attack_spell_on = False
     print_with_splash("Attack spell off", 1000)
   Else
-	$attack_spell_on = True
+    $attack_spell_on = True
     print_with_splash("Attack spell on", 1000)
   EndIf
-  while $attack_spell_on
-    Send("{F4}")
-	sleep(2000)
+  While $attack_spell_on
+    Send($spell_button)
+    Sleep($spell_casting_cooldown)
   WEnd
 EndFunc
 
 
 
+; --- helper functions begin ---
 Func terminate()
   Exit 0
 EndFunc
-
-
 
 Func msg_and_terminate()
   print_with_splash("Bye!", 300)
   Exit 0
 EndFunc
-
-
-
-; --- helper functions begin ---
-Func list_all_windows()
-  dim $var
-  dim $out_string
-  $var = WinList()
-  For $i = 1 to $var[0][0]
-    If $var[$i][0] <> "" AND IsVisible($var[$i][1]) Then ; Only display visble windows that have a title
-      $out_string &= "Title=" & $var[$i][0] & @LF & "Handle=" & $var[$i][1] & @LF
-    EndIf
-  Next
-  MsgBox(0, "Details", $out_string)
-EndFunc
-
-Func IsVisible($handle)
-  If BitAnd( WinGetState($handle), 2 ) Then
-    Return 1
-  Else
-    Return 0
-  EndIf
-EndFunc
-; --- helper functions end ---
-
-
 
 Func print_with_splash($input_text, $delay)
   SplashTextOn($title_of_this_robot, $input_text, 300, 100, $splash_pos_x, $splash_pos_y)
@@ -289,3 +268,5 @@ EndFunc  ;==>_IsPressed
   A4 Left MENU key
   A5 Right MENU key
 #ce
+
+; --- helper functions end ---

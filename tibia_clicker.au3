@@ -1,7 +1,7 @@
 ;
 ; Tibia clicker
 ;
-; This is a script that adds some tweaks to the tibia desktop client. 
+; This is a script that adds some tweaks to the tibia desktop client.
 ;
 ;               end = toggles attacking the first enemy in the enemy list
 ;         page down = toggles attacking the second enemy in the enemy list
@@ -11,20 +11,20 @@
 ;        hyphen (-) = wear invisibility ring from the first inventory slot
 ;         alt + esc = exits the script
 ;
-; The order of windows on the right side panel must be the following: 
-; First the battle window with the default height, about 4 enemies. 
-; Below it must be the inventory where the first item must be an invisibility ring. 
+; Prerequisites:
+;
+; Tibia client must be active.
+; The order of windows on the right side panel must be the following:
+; First the battle window with the default height, about 4 enemies.
+; Below it must be the inventory where the first item must be an invisibility ring.
 
 
-
-const $splash_pos_x = 1000 ; 100 for left, 1000 for right
-const $splash_pos_y = 550 ; 150 for top, 550 for bottom
 
 const $battle_pos_x = 1204 ; battle window x position on screen
 const $battle_pos_y = 435 ; first enemy position on screen
 const $battle_gap_y = 23 ; relative next enemy position
 const $mouse_move_speed = 2 ; speed 0-100 of moving mouse to attack
-AutoItSetOption("MouseClickDelay", 25) ; delay in ms when clicking attack 
+AutoItSetOption("MouseClickDelay", 25) ; delay in ms when clicking attack
 
 const $ring_slot_pos_x = 1215 ; ring slot position on screen
 const $ring_slot_pos_y = 282
@@ -38,6 +38,8 @@ const $spell_casting_cooldown = 2000 ; in ms
 
 
 const $title_of_this_robot = "tibia clicker"
+const $splash_pos_x = 1000 ; Location of info messages. 100 for left, 1000 for right
+const $splash_pos_y = 550 ; 150 for top, 550 for bottom
 global $attack_spell_on = false
 global $already_pressing = false
 
@@ -104,30 +106,45 @@ Func click_attack_enemy($enemy_number)
 ;    print_with_splash("Clicked enemy " & $enemy_number, 200)
     MouseClick("left", $battle_pos_x, $battle_pos_y + $battle_gap_y * ($enemy_number - 1), 1, $mouse_move_speed)
     MouseMove($starting_point_x, $starting_point_y, $mouse_move_speed)
+  Else
+    HotKeySet(@HotKeyPressed)
+    Send(@HotKeyPressed)
+    HotKeySet(@HotKeyPressed, "keypress_hook_attack_enemy_" & $enemy_number)
   EndIf
-
 EndFunc
 
 
 
 Func keypress_hook_put_ring_on()
-  MouseClickDrag("left", $backpack_first_pos_x, $backpack_first_pos_y, $ring_slot_pos_x, $ring_slot_pos_y, 0)
+  If winactive("Tibia") Then
+    MouseClickDrag("left", $backpack_first_pos_x, $backpack_first_pos_y, $ring_slot_pos_x, $ring_slot_pos_y, 0)
+  Else
+	HotKeySet(@HotKeyPressed)
+    Send(@HotKeyPressed)
+    HotKeySet(@HotKeyPressed, "keypress_hook_put_ring_on")
+  EndIf
 EndFunc
 
 
 
 Func keypress_hook_spell_attack_toggle()
-  If $attack_spell_on Then
-    $attack_spell_on = False
-    print_with_splash("Attack spell off", 1000)
+  If winactive("Tibia") Then
+    If $attack_spell_on Then
+      $attack_spell_on = False
+      print_with_splash("Attack spell off", 1000)
+    Else
+      $attack_spell_on = True
+      print_with_splash("Attack spell on", 1000)
+    EndIf
+    While $attack_spell_on
+      Send($spell_button)
+      Sleep($spell_casting_cooldown)
+    WEnd
   Else
-    $attack_spell_on = True
-    print_with_splash("Attack spell on", 1000)
+    HotKeySet(@HotKeyPressed)
+    Send(@HotKeyPressed)
+    HotKeySet(@HotKeyPressed, "keypress_hook_spell_attack_toggle")
   EndIf
-  While $attack_spell_on
-    Send($spell_button)
-    Sleep($spell_casting_cooldown)
-  WEnd
 EndFunc
 
 
